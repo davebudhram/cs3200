@@ -45,7 +45,7 @@ class Controller:
         elif command.lower() == "ingredients":
             self.ingredient_section()
         elif command.lower() == "supplies":
-            self.recipes_section()
+            self.supply_section()
 
         elif command.lower() == "reviews":
             self.recipes_section()
@@ -188,7 +188,6 @@ class Controller:
             print("Invalid command")
             self.cuisine_display(command_new)
 
-
     def types_section(self):
         self.types_display_all()
         print("Commands:\nGo back to homepage: home\n"
@@ -324,6 +323,123 @@ class Controller:
         except (pymysql.err.OperationalError, IndexError):
             print("Invalid storage name")
             self.ingredient_update_storage(ingredient_pk)
+
+    def supply_section(self):
+        self.supplies_display_all()
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To add supply: add\n"
+              "To delete supply: delete\n"
+              "To view, edit, or delete supply: [supply name]")
+        command = input().__str__()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == "exit":
+            self.exit()
+        elif command.lower() == "add":
+            self.supply_add()
+        elif command.lower() == "delete":
+            self.supply_delete()
+        else:
+            self.supply_display(command)
+
+    def supplies_display_all(self):
+        print("Supplies:")
+        cursor = self.connection.cursor()
+        cursor.callproc("select_supplies")
+        i = 1
+        for row in cursor.fetchall():
+            name = row.get('supply_pk')
+            print(i.__str__() + ".", name)
+            i += 1
+        cursor.close()
+
+    def supply_add(self):
+        print("Enter supply name to add:")
+        supply_name = input().__str__()
+        print("Enter supply size to add:")
+        supply_size = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("insert_supply", (supply_name, supply_size))
+            cursor.close()
+            self.supply_section()
+        except pymysql.err.IntegrityError:
+            print("Invalid Fields")
+            self.supply_section()
+
+    def supply_delete(self):
+        print("Enter supply name To delete:")
+        supply_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("delete_supply", (supply_name,))
+            cursor.close()
+            self.supply_section()
+        except pymysql.err.IntegrityError:
+            print("Cannot delete supply, used in recipe")
+            self.supply_section()
+
+    def supply_display(self, supply_pk):
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("select_supply", (supply_pk,))
+            ingredient = cursor.fetchall()[0]
+            print("Supply:", ingredient.get("supply_pk"))
+            print("Size:", ingredient.get("size"))
+            cursor.close()
+            self.supply_update(supply_pk)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("Supply not found")
+            self.supply_section()
+
+    def supply_update(self, supply_pk):
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To update supply: update")
+        command = input()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == 'exit':
+            self.exit()
+        elif command.lower() == "update":
+            print("Commands:\nTo update supply name: name\nTo update supply size: size")
+            supply_update = input()
+            if supply_update.lower() == "name":
+                self.supply_update_name(supply_pk)
+            elif supply_update.lower() == "size":
+                self.supply_update_size(supply_pk)
+            else:
+                print("Invalid update type")
+                self.supply_display(supply_pk)
+        else:
+            print("Invalid Command")
+            self.supply_display(supply_pk)
+
+    def supply_update_name(self, supply_pk):
+        print("Enter new name for supply")
+        new_supply_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_supply_name", (supply_pk, new_supply_name,))
+            cursor.close()
+            self.supply_display(new_supply_name)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("New supply name is invalid, try again")
+            self.supply_update_name(supply_pk)
+
+    def supply_update_size(self, supply_pk):
+        print("Enter new size for supply")
+        new_size = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_supply_size", (supply_pk, new_size,))
+            cursor.close()
+            self.supply_display(supply_pk)
+        except (pymysql.err.OperationalError, IndexError):
+            print("Invalid storage name")
+            self.supply_update_size(supply_pk)
+
 
 # test comment for commit
 controller = enter()
