@@ -1,6 +1,4 @@
 import pymysql
-import re
-
 
 def try_to_connect(username, password):
     try:
@@ -32,6 +30,7 @@ class Controller:
     def exit(self):
         self.connection.commit()
         self.connection.close()
+
     def doStuff(self):
         print("Welcome to your recipe book: Enter what you want to see\n"
               + "Recipes\nIngredients\nSupplies\nReviews\nCuisines\nType")
@@ -42,7 +41,7 @@ class Controller:
         elif command.lower() == "cuisines":
             self.cuisines_section()
         elif command.lower() == "type":
-            self.cuisines_section()
+            self.types_section()
         elif command.lower() == "ingredients":
             self.ingredient_section()
         elif command.lower() == "supplies":
@@ -188,6 +187,27 @@ class Controller:
         else:
             print("Invalid command")
             self.cuisine_display(command_new)
+
+
+    def types_section(self):
+        self.types_display_all()
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To add types: add\n"
+              "To delete types: delete\n"
+              "To view, edit, or delete ingredient: [type name]")
+
+
+    def types_display_all(self):
+        print("Types:")
+        cursor_for_ingredient_names = self.connection.cursor()
+        cursor_for_ingredient_names.callproc("select_types")
+        i = 1
+        for row in cursor_for_ingredient_names.fetchall():
+            name = row.get('types_pk')
+            print(i.__str__() + ".", name)
+            i += 1
+        cursor_for_ingredient_names.close()
 
     def ingredient_section(self):
         self.ingredients_display_all()
