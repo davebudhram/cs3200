@@ -44,8 +44,7 @@ class Controller:
         elif command.lower() == "type":
             self.cuisines_section()
         elif command.lower() == "ingredients":
-            self.recipes_section()
-
+            self.ingredient_section()
         elif command.lower() == "supplies":
             self.recipes_section()
 
@@ -196,7 +195,18 @@ class Controller:
               "To exit: exit\n"
               "To add ingredient: add\n"
               "To delete ingredient: delete\n"
-              "To view, edit, or delete ingredient: [cuisine name]")
+              "To view, edit, or delete ingredient: [Ingredient name]")
+        command = input().__str__()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == "exit":
+            self.exit()
+        elif command.lower() == "add":
+            self.ingredient_add()
+        elif command.lower() == "delete":
+            self.ingredient_delete()
+        else:
+            self.ingredient_display(command)
 
     def ingredients_display_all(self):
         print("Ingredients:")
@@ -212,6 +222,7 @@ class Controller:
     def ingredient_add(self):
         print("Enter ingredient name to add:")
         ingredient_name = input().__str__()
+        print("Enter ingredient storage to add:")
         ingredient_storage = input().__str__()
         try:
             cursor_for_ingredient_add = self.connection.cursor()
@@ -219,33 +230,80 @@ class Controller:
             cursor_for_ingredient_add.close()
             self.ingredient_section()
         except pymysql.err.IntegrityError:
-            print("Invalid Fields, Try Again")
-            self.ingredient_add()
+            print("Invalid Fields")
+            self.ingredient_section()
 
     def ingredient_delete(self):
         print("Enter ingredient name To delete:")
         ingredient_name = input().__str__()
         try:
             cursor = self.connection.cursor()
-            cursor.callproc("delete_cuisine", (ingredient_name,))
+            cursor.callproc("delete_ingredient", (ingredient_name,))
             cursor.close()
             self.ingredient_section()
         except pymysql.err.IntegrityError:
-            print("Invalid Name, Try Again")
-            self.ingredient_delete()
+            print("Cannot delete ingredient, used in recipe")
+            self.ingredient_section()
 
     def ingredient_display(self, ingredient_pk):
-        ingredient_pk_str = str(ingredient_pk)
         try:
             cursor = self.connection.cursor()
-            cursor.callproc("select_ingredient", (ingredient_pk_str,))
-            print(cursor.fetchall()[0].get("ingredient_pk"),
-                  cursor.fetchall()[0].get("storage"))
+            cursor.callproc("select_ingredient", (ingredient_pk,))
+            ingredient = cursor.fetchall()[0]
+            print("Ingredient:", ingredient.get("ingredient_pk"))
+            print("Storage:", ingredient.get("storage"))
             cursor.close()
+            self.ingredient_update(ingredient_pk)
         except (pymysql.err.IntegrityError, IndexError):
-            print("Cuisine not found")
-            self.cuisines_section()
+            print("Ingredient not found")
+            self.ingredient_section()
 
+    def ingredient_update(self, ingredient_pk):
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To update ingredient: update")
+        command = input()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == 'exit':
+            self.exit()
+        elif command.lower() == "update":
+            print("Commands:\nTo update ingredient name: name\nTo update ingredient storage: storage")
+            ingredient_update = input()
+            if ingredient_update.lower() == "name":
+                self.ingredient_update_name(ingredient_pk)
+            elif ingredient_update.lower() == "storage":
+                self.ingredient_update_storage(ingredient_pk)
+            else:
+                print("Invalid update type")
+                self.ingredient_display(ingredient_pk)
+        else:
+            print("Invalid Command")
+            self.ingredient_display(ingredient_pk)
+
+    def ingredient_update_name(self, ingredient_pk):
+        print("Enter new name for ingredient")
+        new_ingredient_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_ingredient_name", (ingredient_pk, new_ingredient_name,))
+            cursor.close()
+            self.ingredient_display(new_ingredient_name)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("New ingredient name is invalid, try again")
+            self.ingredient_update_name(ingredient_pk)
+
+    def ingredient_update_storage(self, ingredient_pk):
+        print("Enter new storage for ingredient")
+        new_storage_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_ingredient_storage", (ingredient_pk, new_storage_name,))
+            cursor.close()
+            self.ingredient_display(ingredient_pk)
+        except (pymysql.err.OperationalError, IndexError):
+            print("Invalid storage name")
+            self.ingredient_update_storage(ingredient_pk)
 
 
 controller = enter()
