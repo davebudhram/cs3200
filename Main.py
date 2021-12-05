@@ -190,5 +190,62 @@ class Controller:
             print("Invalid command")
             self.cuisine_display(command_new)
 
+    def ingredient_section(self):
+        self.ingredients_display_all()
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To add ingredient: add\n"
+              "To delete ingredient: delete\n"
+              "To view, edit, or delete ingredient: [cuisine name]")
+
+    def ingredients_display_all(self):
+        print("Ingredients:")
+        cursor_for_ingredient_names = self.connection.cursor()
+        cursor_for_ingredient_names.callproc("select_ingredients")
+        i = 1
+        for row in cursor_for_ingredient_names.fetchall():
+            name = row.get('ingredient_pk')
+            print(i.__str__() + ".", name)
+            i += 1
+        cursor_for_ingredient_names.close()
+
+    def ingredient_add(self):
+        print("Enter ingredient name to add:")
+        ingredient_name = input().__str__()
+        ingredient_storage = input().__str__()
+        try:
+            cursor_for_ingredient_add = self.connection.cursor()
+            cursor_for_ingredient_add.callproc("insert_ingredient", (ingredient_name, ingredient_storage))
+            cursor_for_ingredient_add.close()
+            self.ingredient_section()
+        except pymysql.err.IntegrityError:
+            print("Invalid Fields, Try Again")
+            self.ingredient_add()
+
+    def ingredient_delete(self):
+        print("Enter ingredient name To delete:")
+        ingredient_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("delete_cuisine", (ingredient_name,))
+            cursor.close()
+            self.ingredient_section()
+        except pymysql.err.IntegrityError:
+            print("Invalid Name, Try Again")
+            self.ingredient_delete()
+
+    def ingredient_display(self, ingredient_pk):
+        ingredient_pk_str = str(ingredient_pk)
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("select_ingredient", (ingredient_pk_str,))
+            print(cursor.fetchall()[0].get("ingredient_pk"),
+                  cursor.fetchall()[0].get("storage"))
+            cursor.close()
+        except (pymysql.err.IntegrityError, IndexError):
+            print("Cuisine not found")
+            self.cuisines_section()
+
+
 
 controller = enter()
