@@ -1,5 +1,6 @@
 import pymysql
 
+
 def try_to_connect(username, password):
     try:
         cnx = pymysql.connect(host='localhost', user=username, password=password,
@@ -46,10 +47,8 @@ class Controller:
             self.ingredient_section()
         elif command.lower() == "supplies":
             self.supply_section()
-
         elif command.lower() == "reviews":
-            self.recipes_section()
-
+            self.reviews_section()
         elif command.lower() == "exit":
             self.exit()
         else:
@@ -276,6 +275,111 @@ class Controller:
 
     # TODO fix update_type_name procedure to use tpk
     def type_update_name(self, type_pk):
+        print("Enter new name for type")
+        new_type_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_type_name", (type_pk,new_type_name,))
+            cursor.close()
+            self.type_display(new_type_name)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("New type name is invalid, try again")
+            self.type_update_name(type_pk)
+
+    # Reviews
+
+    def reviews_section(self):
+        self.reviews_display_all()
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To add reviews: add\n"
+              "To delete reviews: delete\n"
+              "To view, edit, or delete reviews: [reviews name]")
+        command = input().__str__()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == "exit":
+            self.exit()
+        elif command.lower() == "add":
+            self.review_add()
+        elif command.lower() == "delete":
+            self.review_delete()
+        else:
+            self.review_display(command)
+
+    # TODO add select reviews procedure to database
+    def reviews_display_all(self):
+        print("Reviews:")
+        cursor_for_review_names = self.connection.cursor()
+        cursor_for_review_names.callproc("select_reviews")
+        i = 1
+        for row in cursor_for_review_names.fetchall():
+            recipe_name = row.get('recipe_fk')
+            review = row.get('review_pk')
+            print(i.__str__() + ".", recipe_name)
+            print(i.__str__() + ".", review)
+            i += 1
+        cursor_for_review_names.close()
+
+    # TODO add insert review to database
+    def review_add(self):
+        print("Enter recipe name to add review to:")
+        recipe_name = input().__str__()
+        review = input('Enter your review for that recipe:')
+        try:
+            cursor_for_type_add = self.connection.cursor()
+            cursor_for_type_add.callproc("insert_review", (,))
+            cursor_for_type_add.close()
+            self.types_section()
+        except pymysql.err.IntegrityError:
+            print("Invalid Fields")
+            self.ingredient_section()
+
+    # TODO add delete review into database
+    def review_delete(self):
+        print("Enter review's recipe name To delete:")
+        recipe_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("delete_review", (recipe_name,))
+            cursor.close()
+            self.reviews_section()
+        except pymysql.err.IntegrityError:
+            print("Cannot delete review, does not exist")
+            self.reviews_section()
+
+    # TODO add select review function to database
+    # TODO finish this method
+    def review_display(self, recipe_fk):
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("select_review", (recipe_fk,))
+            type_curs = cursor.fetchall()[0]
+            print("Type:", type_curs.get("type_pk"))
+            cursor.close()
+            self.type_update(type_pk)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("Type not found")
+            self.types_section()
+
+    # TODO finish this method
+    def review_update(self, type_pk):
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To update type name: update")
+        command = input()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == 'exit':
+            self.exit()
+        elif command.lower() == "update":
+            self.type_update_name(type_pk)
+        else:
+            print("Invalid Command")
+            self.type_display(type_pk)
+
+    # TODO finish method if we want to implemetn updates
+    def review_update_name(self, type_pk):
         print("Enter new name for type")
         new_type_name = input().__str__()
         try:
