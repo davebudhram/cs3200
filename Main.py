@@ -328,7 +328,7 @@ class Controller:
         review = input('Enter your review for that recipe:')
         try:
             cursor_for_type_add = self.connection.cursor()
-            cursor_for_type_add.callproc("insert_review", (,))
+            cursor_for_type_add.callproc("insert_review", (recipe_name,review,))
             cursor_for_type_add.close()
             self.types_section()
         except pymysql.err.IntegrityError:
@@ -357,7 +357,7 @@ class Controller:
             type_curs = cursor.fetchall()[0]
             print("Type:", type_curs.get("type_pk"))
             cursor.close()
-            self.type_update(type_pk)
+            self.type_update(recipe_fk)
         except (pymysql.err.IntegrityError, IndexError):
             print("Type not found")
             self.types_section()
