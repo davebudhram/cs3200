@@ -362,7 +362,7 @@ class Controller:
             print("Type not found")
             self.types_section()
 
-    # TODO finish this method
+    # TODO finish this method and add to db
     def review_update(self, type_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
