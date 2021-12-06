@@ -188,25 +188,105 @@ class Controller:
             print("Invalid command")
             self.cuisine_display(command_new)
 
+    # Types
+
     def types_section(self):
         self.types_display_all()
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add types: add\n"
               "To delete types: delete\n"
-              "To view, edit, or delete ingredient: [type name]")
-
+              "To view, edit, or delete type: [type name]")
+        command = input().__str__()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == "exit":
+            self.exit()
+        elif command.lower() == "add":
+            self.type_add()
+        elif command.lower() == "delete":
+            self.type_delete()
+        else:
+            self.type_display(command)
 
     def types_display_all(self):
         print("Types:")
-        cursor_for_ingredient_names = self.connection.cursor()
-        cursor_for_ingredient_names.callproc("select_types")
+        cursor_for_type_names = self.connection.cursor()
+        cursor_for_type_names.callproc("select_types")
         i = 1
-        for row in cursor_for_ingredient_names.fetchall():
-            name = row.get('types_pk')
+        for row in cursor_for_type_names.fetchall():
+            name = row.get('type_pk')
             print(i.__str__() + ".", name)
             i += 1
-        cursor_for_ingredient_names.close()
+        cursor_for_type_names.close()
+
+    #TODO add insert
+    def type_add(self):
+        print("Enter type name to add:")
+        type_name = input().__str__()
+        try:
+            cursor_for_type_add = self.connection.cursor()
+            cursor_for_type_add.callproc("insert_type", (type_name,))
+            cursor_for_type_add.close()
+            self.types_section()
+        except pymysql.err.IntegrityError:
+            print("Invalid Fields")
+            self.ingredient_section()
+
+    def type_delete(self):
+        print("Enter type name To delete:")
+        type_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("delete_type", (type_name,))
+            cursor.close()
+            self.types_section()
+        except pymysql.err.IntegrityError:
+            print("Cannot delete type, used in recipe")
+            self.types_section()
+
+    #TODO add select type function to database
+    def type_display(self, type_pk):
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("select_type", (type_pk,))
+            type_curs = cursor.fetchall()[0]
+            print("Type:", type_curs.get("type_pk"))
+            cursor.close()
+            self.type_update(type_pk)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("Type not found")
+            self.types_section()
+
+    def type_update(self, type_pk):
+        print("Commands:\nGo back to homepage: home\n"
+              "To exit: exit\n"
+              "To update type name: update")
+        command = input()
+        if command.lower() == "home":
+            self.doStuff()
+        elif command.lower() == 'exit':
+            self.exit()
+        elif command.lower() == "update":
+            self.type_update_name(type_pk)
+        else:
+            print("Invalid Command")
+            self.type_display(type_pk)
+
+    #TODO fix update_type_name procedure to use tpk
+    def type_update_name(self, type_pk):
+        print("Enter new name for type")
+        new_type_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("update_type_name", (type_pk,new_type_name,))
+            cursor.close()
+            self.type_display(new_type_name)
+        except (pymysql.err.IntegrityError, IndexError):
+            print("New type name is invalid, try again")
+            self.type_update_name(type_pk)
+
+    # Ingredients
 
     def ingredient_section(self):
         self.ingredients_display_all()
