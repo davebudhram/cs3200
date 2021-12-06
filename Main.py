@@ -57,7 +57,7 @@ class Controller:
 
     # recipe homepage
     def recipes_section(self):
-        self.view_all_recipes()
+        self.recipes_display_all()
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add recipe: add\n"
@@ -73,13 +73,15 @@ class Controller:
             self.display_recipe(command)
 
     # displays all the recipe names
-    def view_all_recipes(self):
+    def recipes_display_all(self):
         print("Your recipes:")
         cursor_for_recipe_names = self.connection.cursor()
         cursor_for_recipe_names.callproc("select_recipes")
+        i = 1
         for row in cursor_for_recipe_names.fetchall():
             name = row.get('recipe_pk')
-            print("1.", name)
+            print(i.__str__() + ".", name)
+            i =+1
         cursor_for_recipe_names.close()
 
     # displays recipe
@@ -292,9 +294,9 @@ class Controller:
         self.reviews_display_all()
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
-              "To add reviews: add\n"
-              "To delete reviews: delete\n"
-              "To view, edit, or delete reviews: [reviews name]")
+              "To add review: add\n"
+              "To delete review: delete\n"
+              "To view, edit, or delete reviews: [review name]")
         command = input().__str__()
         if command.lower() == "home":
             self.doStuff()
@@ -307,92 +309,78 @@ class Controller:
         else:
             self.review_display(command)
 
-    # TODO add select reviews procedure to database
+
     def reviews_display_all(self):
         print("Reviews:")
         cursor_for_review_names = self.connection.cursor()
         cursor_for_review_names.callproc("select_reviews")
         i = 1
         for row in cursor_for_review_names.fetchall():
-            recipe_name = row.get('recipe_fk')
             review = row.get('review_pk')
-            print(i.__str__() + ".", recipe_name)
             print(i.__str__() + ".", review)
             i += 1
         cursor_for_review_names.close()
 
-    # TODO add insert review to database
     def review_add(self):
         print("Enter recipe name to add review to:")
+        self.recipes_display_all()
         recipe_name = input().__str__()
-        review = input('Enter your review for that recipe:')
+        print("Enter review title:")
+        review_name = input().__str__()
+        print("Enter number of starts as an integer:")
+        stars = input().__str__()
+        print("Enter your review for that recipe:")
+        review = input().__str__()
         try:
             cursor_for_type_add = self.connection.cursor()
-            cursor_for_type_add.callproc("insert_review", (recipe_name,review,))
+            cursor_for_type_add.callproc("insert_review", (review_name, recipe_name, stars, review,))
             cursor_for_type_add.close()
-            self.types_section()
-        except pymysql.err.IntegrityError:
+            self.review_display(review_name)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
-            self.ingredient_section()
+            self.reviews_section()
 
-    # TODO add delete review into database
+
     def review_delete(self):
-        print("Enter review's recipe name To delete:")
-        recipe_name = input().__str__()
+        print("Enter review's name to delete:")
+        review_name = input().__str__()
         try:
             cursor = self.connection.cursor()
-            cursor.callproc("delete_review", (recipe_name,))
+            cursor.callproc("delete_review", (review_name,))
             cursor.close()
             self.reviews_section()
-        except pymysql.err.IntegrityError:
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Cannot delete review, does not exist")
             self.reviews_section()
 
-    # TODO add select review function to database
-    # TODO finish this method
-    def review_display(self, recipe_fk):
+    def review_display(self, review_pk):
         try:
             cursor = self.connection.cursor()
-            cursor.callproc("select_review", (recipe_fk,))
-            type_curs = cursor.fetchall()[0]
-            print("Type:", type_curs.get("type_pk"))
+            cursor.callproc("select_review", (review_pk,))
+            review_fields = cursor.fetchall()[0]
+            print("Review:", review_fields.get("review_pk"))
+            print("Recipe:", review_fields.get("recipe_fk"))
+            print("Stars:", review_fields.get("stars"))
+            print("Review:", review_fields.get("review_text"))
             cursor.close()
-            self.type_update(recipe_fk)
-        except (pymysql.err.IntegrityError, IndexError):
-            print("Type not found")
-            self.types_section()
-
-    # TODO finish this method and add to db
-    def review_update(self, type_pk):
-        print("Commands:\nGo back to homepage: home\n"
-              "To exit: exit\n"
-              "To update type name: update")
-        command = input()
-        if command.lower() == "home":
-            self.doStuff()
-        elif command.lower() == 'exit':
-            self.exit()
-        elif command.lower() == "update":
-            self.type_update_name(type_pk)
-        else:
-            print("Invalid Command")
-            self.type_display(type_pk)
-
-    # TODO finish method if we want to implemetn updates
-    def review_update_name(self, type_pk):
-        print("Enter new name for type")
-        new_type_name = input().__str__()
-        try:
-            cursor = self.connection.cursor()
-            cursor.callproc("update_type_name", (type_pk,new_type_name,))
-            cursor.close()
-            self.type_display(new_type_name)
-        except (pymysql.err.IntegrityError, IndexError):
-            print("New type name is invalid, try again")
-            self.type_update_name(type_pk)
+            print("Commands:\nGo back to homepage: home\n"
+                 "To exit: exit\n"
+                  "To go back to review: reviews")
+            command = input()
+            if command.lower() == "home":
+                self.doStuff()
+            elif command.lower() == 'exit':
+                self.exit()
+            elif command.lower() == 'reviews':
+                self.reviews_section()
+            else:
+                print("Invalid command")
+                self.display_recipe(review_pk)
+        except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
+            print("Review not found")
+            self.reviews_section()
 
     # Ingredients
-
     def ingredient_section(self):
         self.ingredients_display_all()
         print("Commands:\nGo back to homepage: home\n"
@@ -433,7 +421,7 @@ class Controller:
             cursor_for_ingredient_add.callproc("insert_ingredient", (ingredient_name, ingredient_storage))
             cursor_for_ingredient_add.close()
             self.ingredient_section()
-        except pymysql.err.IntegrityError:
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
             self.ingredient_section()
 
@@ -445,8 +433,8 @@ class Controller:
             cursor.callproc("delete_ingredient", (ingredient_name,))
             cursor.close()
             self.ingredient_section()
-        except pymysql.err.IntegrityError:
-            print("Cannot delete ingredient, used in recipe")
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Unable to delete ingredinet")
             self.ingredient_section()
 
     def ingredient_display(self, ingredient_pk):
@@ -458,7 +446,7 @@ class Controller:
             print("Storage:", ingredient.get("storage"))
             cursor.close()
             self.ingredient_update(ingredient_pk)
-        except (pymysql.err.IntegrityError, IndexError):
+        except (pymysql.err.IntegrityError, pymysql.err.DataError, IndexError):
             print("Ingredient not found")
             self.ingredient_section()
 
@@ -493,9 +481,9 @@ class Controller:
             cursor.callproc("update_ingredient_name", (ingredient_pk, new_ingredient_name,))
             cursor.close()
             self.ingredient_display(new_ingredient_name)
-        except (pymysql.err.IntegrityError, IndexError):
-            print("New ingredient name is invalid, try again")
-            self.ingredient_update_name(ingredient_pk)
+        except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
+            print("New ingredient name is invalid")
+            self.ingredient_display(ingredient_pk)
 
     def ingredient_update_storage(self, ingredient_pk):
         print("Enter new storage for ingredient")
@@ -505,10 +493,11 @@ class Controller:
             cursor.callproc("update_ingredient_storage", (ingredient_pk, new_storage_name,))
             cursor.close()
             self.ingredient_display(ingredient_pk)
-        except (pymysql.err.OperationalError, IndexError):
+        except (pymysql.err.OperationalError, IndexError, pymysql.err.DataError):
             print("Invalid storage name")
-            self.ingredient_update_storage(ingredient_pk)
+            self.ingredient_display(ingredient_pk)
 
+    #Supplies
     def supply_section(self):
         self.supplies_display_all()
         print("Commands:\nGo back to homepage: home\n"
@@ -549,7 +538,7 @@ class Controller:
             cursor.callproc("insert_supply", (supply_name, supply_size))
             cursor.close()
             self.supply_section()
-        except pymysql.err.IntegrityError:
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
             self.supply_section()
 
@@ -561,7 +550,7 @@ class Controller:
             cursor.callproc("delete_supply", (supply_name,))
             cursor.close()
             self.supply_section()
-        except pymysql.err.IntegrityError:
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Cannot delete supply, used in recipe")
             self.supply_section()
 
@@ -574,7 +563,7 @@ class Controller:
             print("Size:", ingredient.get("size"))
             cursor.close()
             self.supply_update(supply_pk)
-        except (pymysql.err.IntegrityError, IndexError):
+        except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
             print("Supply not found")
             self.supply_section()
 
@@ -609,9 +598,9 @@ class Controller:
             cursor.callproc("update_supply_name", (supply_pk, new_supply_name,))
             cursor.close()
             self.supply_display(new_supply_name)
-        except (pymysql.err.IntegrityError, IndexError):
-            print("New supply name is invalid, try again")
-            self.supply_update_name(supply_pk)
+        except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
+            print("New supply name is invalid")
+            self.supply_display(supply_pk)
 
     def supply_update_size(self, supply_pk):
         print("Enter new size for supply")
@@ -621,9 +610,9 @@ class Controller:
             cursor.callproc("update_supply_size", (supply_pk, new_size,))
             cursor.close()
             self.supply_display(supply_pk)
-        except (pymysql.err.OperationalError, IndexError):
+        except (pymysql.err.OperationalError, IndexError, pymysql.err.DataError):
             print("Invalid storage name")
-            self.supply_update_size(supply_pk)
+            self.supply_display(supply_pk)
 
 
 # test comment for commit
