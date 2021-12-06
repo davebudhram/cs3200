@@ -220,7 +220,7 @@ class Controller:
             i += 1
         cursor_for_type_names.close()
 
-    #TODO add insert
+    # TODO add insert procedure to database
     def type_add(self):
         print("Enter type name to add:")
         type_name = input().__str__()
@@ -233,6 +233,7 @@ class Controller:
             print("Invalid Fields")
             self.ingredient_section()
 
+    # TODO fix delete procedure to take in a varchar
     def type_delete(self):
         print("Enter type name To delete:")
         type_name = input().__str__()
@@ -245,7 +246,7 @@ class Controller:
             print("Cannot delete type, used in recipe")
             self.types_section()
 
-    #TODO add select type function to database
+    # TODO add select type function to database
     def type_display(self, type_pk):
         try:
             cursor = self.connection.cursor()
@@ -273,7 +274,7 @@ class Controller:
             print("Invalid Command")
             self.type_display(type_pk)
 
-    #TODO fix update_type_name procedure to use tpk
+    # TODO fix update_type_name procedure to use tpk
     def type_update_name(self, type_pk):
         print("Enter new name for type")
         new_type_name = input().__str__()
