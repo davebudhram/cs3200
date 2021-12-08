@@ -500,7 +500,6 @@ class Controller:
 
     def review_add(self):
         print("Enter recipe name to add review to:")
-        #self.re_display_all()
         recipe_name = input().__str__()
         print("Enter review title:")
         review_name = input().__str__()
@@ -512,6 +511,7 @@ class Controller:
             cursor_for_type_add = self.connection.cursor()
             cursor_for_type_add.callproc("insert_review", (review_name, recipe_name, stars, review,))
             cursor_for_type_add.close()
+            self.connection.commit()
             self.review_display(review_name)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Unable to add review")
@@ -522,6 +522,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("delete_review", (review_name,))
             cursor.close()
+            self.connection.commit()
             self.reviews_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Cannot delete review, does not exist")
@@ -594,6 +595,7 @@ class Controller:
             cursor_for_ingredient_add = self.connection.cursor()
             cursor_for_ingredient_add.callproc("insert_ingredient", (ingredient_name, ingredient_storage))
             cursor_for_ingredient_add.close()
+            self.connection.commit()
             self.ingredient_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -604,6 +606,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("delete_ingredient", (ingredient_name,))
             cursor.close()
+            self.connection.commit()
             self.ingredient_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Unable to delete ingredient")
@@ -617,6 +620,7 @@ class Controller:
             print("Ingredient:", ingredient.get("ingredient_pk"))
             print("Storage:", ingredient.get("storage"))
             cursor.close()
+            self.connection.commit()
             self.ingredient_update(ingredient_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError, IndexError):
             print("Ingredient not found")
@@ -658,6 +662,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("update_ingredient_name", (ingredient_pk, new_ingredient_name,))
             cursor.close()
+            self.connection.commit()
             self.ingredient_display(new_ingredient_name)
         except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
             print("New ingredient name is invalid")
@@ -670,6 +675,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("update_ingredient_storage", (ingredient_pk, new_storage_name,))
             cursor.close()
+            self.connection.commit()
             self.ingredient_display(ingredient_pk)
         except (pymysql.err.OperationalError, IndexError, pymysql.err.DataError):
             print("Invalid storage name")
@@ -712,6 +718,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("insert_supply", (supply_name, supply_size))
             cursor.close()
+            self.connection.commit()
             self.supply_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -722,6 +729,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("delete_supply", (supply_name,))
             cursor.close()
+            self.connection.commit()
             self.supply_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Cannot delete supply, used in recipe")
@@ -735,6 +743,7 @@ class Controller:
             print("Supply:", ingredient.get("supply_pk"))
             print("Size:", ingredient.get("size"))
             cursor.close()
+            self.connection.commit()
             self.supply_update(supply_pk)
         except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
             print("Supply not found")
@@ -776,6 +785,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("update_supply_name", (supply_pk, new_supply_name,))
             cursor.close()
+            self.connection.commit()
             self.supply_display(new_supply_name)
         except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
             print("New supply name is invalid")
@@ -788,6 +798,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("update_supply_size", (supply_pk, new_size,))
             cursor.close()
+            self.connection.commit()
             self.supply_display(supply_pk)
         except (pymysql.err.OperationalError, IndexError, pymysql.err.DataError):
             print("Invalid storage name")
