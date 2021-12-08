@@ -35,7 +35,7 @@ class Controller:
     def homepage_section(self):
         print("Welcome to your recipe book: Enter what you want to see\n"
               + "Commands:\nTo exit: exit\nTo view your recipes: recipes\nTo view your ingredienta: ingredients"
-                "\nTo view your supplies: supplies\nTo view your reviews: reviews\nC"
+                "\nTo view your supplies: supplies\nTo view your reviews: reviews"
                 "\nTo view your cuisines: cuisines\nTo view your types : types")
         command = input()
 
@@ -43,7 +43,7 @@ class Controller:
             self.recipes_section()
         elif command.lower() == "cuisines":
             self.cuisines_section()
-        elif command.lower() == "type":
+        elif command.lower() == "types":
             self.types_section()
         elif command.lower() == "ingredients":
             self.ingredient_section()
@@ -280,7 +280,6 @@ class Controller:
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add cuisine: add\n"
-              "To delete cuisine: delete\n"
               "To view, edit, or delete cuisine: [cuisine name]")
         command = input()
         if command.lower() == "home":
@@ -289,8 +288,6 @@ class Controller:
             self.exit()
         elif command.lower() == "add":
             self.cuisines_add()
-        elif command.lower() == "delete":
-            self.cuisines_delete()
         else:
             self.cuisine_display(command)
 
@@ -317,17 +314,15 @@ class Controller:
             print("Invalid Name, Try Again")
             self.cuisines_add()
 
-    def cuisines_delete(self):
-        print("Enter cuisine name To delete:")
-        cuisine_name = input().__str__()
+    def cuisines_delete(self, cuisine_name):
         try:
             cursor_for_cuisines_add = self.connection.cursor()
             cursor_for_cuisines_add.callproc("delete_cuisine", (cuisine_name,))
             cursor_for_cuisines_add.close()
             self.cuisines_section()
-        except pymysql.err.IntegrityError:
-            print("Invalid Name, Try Again")
-            self.cuisines_delete()
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Name")
+            self.cuisines_section()
 
     def cuisine_display(self, command):
         new_command = command.__str__()
@@ -344,12 +339,15 @@ class Controller:
     def cuisines_update(self, command_new):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To delete cuisine: delete\n"
               "To update cuisine name: update")
         command = input()
         if command == "home":
             self.homepage_section()
         elif command == "exit":
             self.exit()
+        elif command.lower() == "delete":
+            self.cuisines_delete(command_new)
         elif command == "update":
             print("Enter new name for cuisine:")
             name = input().__str__()
@@ -358,7 +356,7 @@ class Controller:
                 cursor_for_cuisines_add.callproc("update_cuisine", (command_new, name,))
                 cursor_for_cuisines_add.close()
                 self.cuisine_display(name)
-            except pymysql.err.IntegrityError:
+            except (pymysql.err.IntegrityError, pymysql.err.DataError):
                 print("Invalid name")
                 self.cuisine_display(name)
         else:
@@ -404,7 +402,7 @@ class Controller:
             self.types_section()
         except pymysql.err.IntegrityError:
             print("Invalid Fields")
-            self.ingredient_section()
+            self.types_section()
 
     def type_delete(self, type_name):
         try:
@@ -447,7 +445,6 @@ class Controller:
             print("Invalid Command")
             self.type_display(type_pk)
 
-    # TODO fix update_type_name procedure to use tpk
     def type_update_name(self, type_pk):
         print("Enter new name for type")
         new_type_name = input().__str__()
@@ -466,7 +463,6 @@ class Controller:
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add review: add\n"
-              "To delete review: delete\n"
               "To view or delete review: [review name]")
         command = input().__str__()
         if command.lower() == "home":
@@ -616,6 +612,7 @@ class Controller:
     def ingredient_update(self, ingredient_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To go back to all ingredients: ingredients\n"
               "To delete ingredient: delete\n"
               "To update ingredient: update")
         command = input()
@@ -625,6 +622,8 @@ class Controller:
             self.exit()
         elif command.lower() == 'delete':
             self.ingredient_delete(ingredient_pk)
+        elif command.lower() == 'ingredients':
+            self.ingredient_section()
         elif command.lower() == "update":
             print("Commands:\nTo update ingredient name: name\nTo update ingredient storage: storage")
             ingredient_update = input()
@@ -731,6 +730,7 @@ class Controller:
     def supply_update(self, supply_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To go back to all supplies: supplies\n"
               "To delete supply: delete\n"
               "To update supply: update")
         command = input()
@@ -738,6 +738,8 @@ class Controller:
             self.homepage_section()
         elif command.lower() == 'exit':
             self.exit()
+        elif command.lower() == 'supplies':
+            self.supply_section()
         elif command.lower() == 'delete':
             self.supply_delete(supply_pk)
         elif command.lower() == "update":
