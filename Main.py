@@ -16,7 +16,7 @@ def enter():
     u = input()
     print("Enter password")
     p = input()
-    if try_to_connect(u, p) == None:
+    if try_to_connect(u, p) is None:
         return enter()
     else:
         return Controller(u, p)
@@ -26,15 +26,17 @@ class Controller:
     def __init__(self, username, password):
 
         self.connection = try_to_connect(username, password)
-        self.doStuff()
+        self.homepage_section()
 
     def exit(self):
         self.connection.commit()
         self.connection.close()
 
-    def doStuff(self):
+    def homepage_section(self):
         print("Welcome to your recipe book: Enter what you want to see\n"
-              + "Recipes\nIngredients\nSupplies\nReviews\nCuisines\nType")
+              + "Commands:\nTo exit: exit\nTo view your recipes: recipes\nTo view your ingredienta: ingredients"
+                "\nTo view your supplies: supplies\nTo view your reviews: reviews\nC"
+                "\nTo view your cuisines: cuisines\nTo view your types : types")
         command = input()
 
         if command.lower() == "recipes":
@@ -52,25 +54,27 @@ class Controller:
         elif command.lower() == "exit":
             self.exit()
         else:
-            print("Not supported, try again")
-            self.doStuff()
+            print("Invalid command")
+            self.homepage_section()
 
-    # recipe homepage
+    # Recipes
     def recipes_section(self):
         self.recipes_display_all()
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add recipe: add\n"
-              "To view, edit, or delete recipe: [recipe name]")
+              "To view: [recipe name]")
         command = input()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
-            self.doStuff()
+            self.recipe_add()
+        elif command.lower() == "delete":
+            self.recipe_delete()
         else:
-            self.display_recipe(command)
+            self.recipe_display(command)
 
     # displays all the recipe names
     def recipes_display_all(self):
@@ -84,20 +88,192 @@ class Controller:
             i =+1
         cursor_for_recipe_names.close()
 
-    # displays recipe
-    def display_recipe(self, name):
+    def recipe_add(self):
+        print("Enter recipe name:")
+        recipe_name = input().__str__()
+        print("Enter serving size (ex: five people):")
+        serving_size = input().__str__()
+        print("Enter recipe cook/bake time as an integer:")
+        time = input()
+        print("Enter your recipe difficulty (ex: intermediate)")
+        level = input().__str__()
+        try:
+            cursor_add_recipe= self.connection.cursor()
+            cursor_add_recipe.callproc("insert_recipe", (recipe_name, serving_size, time, level,))
+            cursor_add_recipe.close()
+            self.recipe_add_relationships(recipe_name)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Fields")
+            self.recipes_section()
+
+    def recipe_add_relationships(self, recipe_pk):
+        print("Commands:\nAdd ingredient to recipe: ingredient\n"
+              "Add supply to recipe: supply\nAdd cuisine to recipe: cuisine\n"
+              "Add direction to recipe: direction\nAdd type to recipe: type\n"
+              "When finished with recipe: finish")
+        command = input().__str__()
+        if command == "ingredient":
+            self.recipe_add_ingredient(recipe_pk)
+        elif command == "direction":
+            self.recipe_add_direction(recipe_pk)
+        elif command == "supply":
+            self.recipe_add_supply(recipe_pk)
+        elif command == "cuisine":
+            self.recipe_add_cuisine(recipe_pk)
+        elif command == "type":
+            self.recipe_add_type(recipe_pk)
+        elif command == "finish":
+            self.recipe_display(recipe_pk)
+        else:
+            print("Invalid command")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_add_ingredient(self, recipe_pk):
+        print("Enter ingredient name, here are the ones you can add")
+        self.ingredients_display_all()
+        name = input().__str__()
+        print("Enter amount of ingredient (ex: five tablespoons)")
+        quantity = input().__str__()
+        try:
+            cursor_add_ingredient= self.connection.cursor()
+            cursor_add_ingredient.callproc("insert_ingredient_recipe",(name, recipe_pk, quantity,))
+            cursor_add_ingredient.close()
+            self.recipe_add_relationships(recipe_pk)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Fields")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_add_supply(self, recipe_pk):
+        print("Enter supply name, here are the ones you can add:")
+        self.supplies_display_all()
+        name = input().__str__()
+        print("Enter number of this supply needed as integer:")
+        quantity = input().__str__()
+        try:
+            cursor_add_supply= self.connection.cursor()
+            cursor_add_supply.callproc("insert_supply_quantity",(name, recipe_pk, quantity,))
+            cursor_add_supply.close()
+            self.recipe_add_relationships(recipe_pk)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Fields")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_add_type(self, recipe_pk):
+        print("Enter the type of recipe, here are the ones you can add:")
+        self.type_display_all()
+        name = input().__str__()
+        try:
+            cursor_add_type= self.connection.cursor()
+            cursor_add_type.callproc("insert_type_recipe",(name, recipe_pk,))
+            cursor_add_type.close()
+            self.recipe_add_relationships(recipe_pk)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Field")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_add_cuisine(self, recipe_pk):
+        print("Enter the cuisine of recipe, here are the ones you can add:")
+        self.cuisines_display_all()
+        name = input().__str__()
+        try:
+            cursor_add_cuisine = self.connection.cursor()
+            cursor_add_cuisine.callproc("insert_cuisine_recipe",(name, recipe_pk,))
+            cursor_add_cuisine.close()
+            self.recipe_add_relationships(recipe_pk)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Field")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_add_direction(self, recipe_pk):
+        print("Enter direction")
+        direction = input().__str__()
+        try:
+            cursor_add_ingredient= self.connection.cursor()
+            cursor_add_ingredient.callproc("insert_direction", (recipe_pk, direction,))
+            cursor_add_ingredient.close()
+            self.recipe_add_relationships(recipe_pk)
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Invalid Fields")
+            self.recipe_add_relationships(recipe_pk)
+
+    def recipe_delete(self):
+        print("Enter recipe's name to delete:")
+        recipe_name = input().__str__()
+        try:
+            cursor = self.connection.cursor()
+            cursor.callproc("delete_recipe", (recipe_name,))
+            cursor.close()
+            self.recipes_section()
+        except (pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Unable to delete recipe")
+            self.recipes_section()
+
+    def recipe_display(self, name):
         try:
             cursor_for_recipe = self.connection.cursor()
             cursor_for_recipe.callproc('select_recipe', (name,))
             recipe = cursor_for_recipe.fetchall()[0]
             print(recipe.get("recipe_pk"))
-            print(recipe.get("serving_size"))
-            print(recipe.get("time"), "minutes")
+            print("Serving size:", recipe.get("serving_size"))
+            print("Time:", recipe.get("time"), "minutes")
             print("Difficultly:", recipe.get("level"))
             cursor_for_recipe.close()
-        except IndexError:
-            print("Recipe Not Found :(")
+            self.recipe_cuisines_display(name)
+            self.recipe_types_display(name)
+            self.recipe_ingredients_display(name)
+            self.recipe_supplies_display(name)
+        except (IndexError, pymysql.err.IntegrityError, pymysql.err.DataError):
+            print("Recipe Not Found")
             self.recipes_section()
+
+    def recipe_ingredients_display(self, recipe_pk):
+        print("Ingredients:")
+        cursor_for_ingredient = self.connection.cursor()
+        cursor_for_ingredient.callproc("select_ingredient_quantity", (recipe_pk,))
+        i = 1
+        for row in cursor_for_ingredient.fetchall():
+            name = row.get('ingredient')
+            quantity = row.get('amount')
+            print(i.__str__() + ".", quantity, name)
+            i += 1
+        cursor_for_ingredient.close()
+
+    def recipe_supplies_display(self, recipe_pk):
+        print("Supplies:")
+        cursor_for_supply = self.connection.cursor()
+        cursor_for_supply.callproc("select_supplies_quantity", (recipe_pk,))
+        i = 1
+        for row in cursor_for_supply.fetchall():
+            name = row.get('supply')
+            quantity = row.get('amount')
+            size = row.get('size')
+            print(i.__str__() + ".", quantity, size, name)
+            i += 1
+        cursor_for_supply.close()
+
+    def recipe_cuisines_display(self, recipe_pk):
+        print("Cuisines:")
+        cursor_for_cuisine = self.connection.cursor()
+        cursor_for_cuisine.callproc("select_cuisine_recipe", (recipe_pk,))
+        i = 1
+        for row in cursor_for_cuisine.fetchall():
+            name = row.get('cuisine')
+            print(i.__str__() + ".", name)
+            i += 1
+        cursor_for_cuisine.close()
+
+    def recipe_types_display(self, recipe_pk):
+        print("Types:")
+        cursor_for_type = self.connection.cursor()
+        cursor_for_type.callproc("select_type_recipe", (recipe_pk,))
+        i = 1
+        for row in cursor_for_type.fetchall():
+            name = row.get('type')
+            print(i.__str__() + ".", name)
+            i += 1
+        cursor_for_type.close()
+
+    # cuisines
 
     def cuisines_section(self):
         self.cuisines_display_all()
@@ -108,7 +284,7 @@ class Controller:
               "To view, edit, or delete cuisine: [cuisine name]")
         command = input()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
@@ -171,7 +347,7 @@ class Controller:
               "To update cuisine name: update")
         command = input()
         if command == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command == "exit":
             self.exit()
         elif command == "update":
@@ -196,17 +372,14 @@ class Controller:
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add types: add\n"
-              "To delete types: delete\n"
               "To view, edit, or delete type: [type name]")
         command = input().__str__()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
             self.type_add()
-        elif command.lower() == "delete":
-            self.type_delete()
         else:
             self.type_display(command)
 
@@ -221,7 +394,6 @@ class Controller:
             i += 1
         cursor_for_type_names.close()
 
-    # TODO add insert procedure to database
     def type_add(self):
         print("Enter type name to add:")
         type_name = input().__str__()
@@ -234,10 +406,7 @@ class Controller:
             print("Invalid Fields")
             self.ingredient_section()
 
-    # TODO fix delete procedure to take in a varchar
-    def type_delete(self):
-        print("Enter type name To delete:")
-        type_name = input().__str__()
+    def type_delete(self, type_name):
         try:
             cursor = self.connection.cursor()
             cursor.callproc("delete_type", (type_name,))
@@ -247,7 +416,7 @@ class Controller:
             print("Cannot delete type, used in recipe")
             self.types_section()
 
-    # TODO add select type function to database
+
     def type_display(self, type_pk):
         try:
             cursor = self.connection.cursor()
@@ -263,12 +432,15 @@ class Controller:
     def type_update(self, type_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To delete type name: delete\n"
               "To update type name: update")
         command = input()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == 'exit':
             self.exit()
+        elif command.lower() == 'delete':
+            self.type_delete(type_pk)
         elif command.lower() == "update":
             self.type_update_name(type_pk)
         else:
@@ -289,26 +461,22 @@ class Controller:
             self.type_update_name(type_pk)
 
     # Reviews
-
     def reviews_section(self):
         self.reviews_display_all()
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add review: add\n"
               "To delete review: delete\n"
-              "To view, edit, or delete reviews: [review name]")
+              "To view or delete review: [review name]")
         command = input().__str__()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
             self.review_add()
-        elif command.lower() == "delete":
-            self.review_delete()
         else:
             self.review_display(command)
-
 
     def reviews_display_all(self):
         print("Reviews:")
@@ -323,7 +491,7 @@ class Controller:
 
     def review_add(self):
         print("Enter recipe name to add review to:")
-        self.recipes_display_all()
+        #self.re_display_all()
         recipe_name = input().__str__()
         print("Enter review title:")
         review_name = input().__str__()
@@ -337,13 +505,10 @@ class Controller:
             cursor_for_type_add.close()
             self.review_display(review_name)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
-            print("Invalid Fields")
+            print("Unable to add review")
             self.reviews_section()
 
-
-    def review_delete(self):
-        print("Enter review's name to delete:")
-        review_name = input().__str__()
+    def review_delete(self, review_name):
         try:
             cursor = self.connection.cursor()
             cursor.callproc("delete_review", (review_name,))
@@ -364,18 +529,21 @@ class Controller:
             print("Review:", review_fields.get("review_text"))
             cursor.close()
             print("Commands:\nGo back to homepage: home\n"
-                 "To exit: exit\n"
-                  "To go back to review: reviews")
+                  "To exit: exit\n"
+                  "To delete review: delete"
+                  "To go back to reviews: reviews")
             command = input()
             if command.lower() == "home":
-                self.doStuff()
+                self.homepage_section()
             elif command.lower() == 'exit':
                 self.exit()
+            elif command.lower() == 'delete':
+                self.review_delete(review_pk)
             elif command.lower() == 'reviews':
                 self.reviews_section()
             else:
                 print("Invalid command")
-                self.display_recipe(review_pk)
+                self.review_display(review_pk)
         except (pymysql.err.IntegrityError, IndexError, pymysql.err.DataError):
             print("Review not found")
             self.reviews_section()
@@ -386,17 +554,14 @@ class Controller:
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add ingredient: add\n"
-              "To delete ingredient: delete\n"
               "To view, edit, or delete ingredient: [Ingredient name]")
         command = input().__str__()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
             self.ingredient_add()
-        elif command.lower() == "delete":
-            self.ingredient_delete()
         else:
             self.ingredient_display(command)
 
@@ -425,16 +590,14 @@ class Controller:
             print("Invalid Fields")
             self.ingredient_section()
 
-    def ingredient_delete(self):
-        print("Enter ingredient name To delete:")
-        ingredient_name = input().__str__()
+    def ingredient_delete(self, ingredient_name):
         try:
             cursor = self.connection.cursor()
             cursor.callproc("delete_ingredient", (ingredient_name,))
             cursor.close()
             self.ingredient_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
-            print("Unable to delete ingredinet")
+            print("Unable to delete ingredient")
             self.ingredient_section()
 
     def ingredient_display(self, ingredient_pk):
@@ -453,12 +616,15 @@ class Controller:
     def ingredient_update(self, ingredient_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To delete ingredient: delete\n"
               "To update ingredient: update")
         command = input()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == 'exit':
             self.exit()
+        elif command.lower() == 'delete':
+            self.ingredient_delete(ingredient_pk)
         elif command.lower() == "update":
             print("Commands:\nTo update ingredient name: name\nTo update ingredient storage: storage")
             ingredient_update = input()
@@ -503,17 +669,14 @@ class Controller:
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
               "To add supply: add\n"
-              "To delete supply: delete\n"
               "To view, edit, or delete supply: [supply name]")
         command = input().__str__()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == "exit":
             self.exit()
         elif command.lower() == "add":
             self.supply_add()
-        elif command.lower() == "delete":
-            self.supply_delete()
         else:
             self.supply_display(command)
 
@@ -542,9 +705,7 @@ class Controller:
             print("Invalid Fields")
             self.supply_section()
 
-    def supply_delete(self):
-        print("Enter supply name To delete:")
-        supply_name = input().__str__()
+    def supply_delete(self, supply_name):
         try:
             cursor = self.connection.cursor()
             cursor.callproc("delete_supply", (supply_name,))
@@ -570,12 +731,15 @@ class Controller:
     def supply_update(self, supply_pk):
         print("Commands:\nGo back to homepage: home\n"
               "To exit: exit\n"
+              "To delete supply: delete\n"
               "To update supply: update")
         command = input()
         if command.lower() == "home":
-            self.doStuff()
+            self.homepage_section()
         elif command.lower() == 'exit':
             self.exit()
+        elif command.lower() == 'delete':
+            self.supply_delete(supply_pk)
         elif command.lower() == "update":
             print("Commands:\nTo update supply name: name\nTo update supply size: size")
             supply_update = input()
