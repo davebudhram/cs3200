@@ -101,6 +101,7 @@ class Controller:
             cursor_add_recipe= self.connection.cursor()
             cursor_add_recipe.callproc("insert_recipe", (recipe_name, serving_size, time, level,))
             cursor_add_recipe.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_name)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -138,6 +139,7 @@ class Controller:
             cursor_add_ingredient= self.connection.cursor()
             cursor_add_ingredient.callproc("insert_ingredient_recipe",(name, recipe_pk, quantity,))
             cursor_add_ingredient.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -153,6 +155,7 @@ class Controller:
             cursor_add_supply= self.connection.cursor()
             cursor_add_supply.callproc("insert_supply_quantity",(name, recipe_pk, quantity,))
             cursor_add_supply.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -166,6 +169,7 @@ class Controller:
             cursor_add_type= self.connection.cursor()
             cursor_add_type.callproc("insert_type_recipe",(name, recipe_pk,))
             cursor_add_type.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Field")
@@ -179,6 +183,7 @@ class Controller:
             cursor_add_cuisine = self.connection.cursor()
             cursor_add_cuisine.callproc("insert_cuisine_recipe",(name, recipe_pk,))
             cursor_add_cuisine.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Field")
@@ -191,6 +196,7 @@ class Controller:
             cursor_add_ingredient= self.connection.cursor()
             cursor_add_ingredient.callproc("insert_direction", (recipe_pk, direction,))
             cursor_add_ingredient.close()
+            self.connection.commit()
             self.recipe_add_relationships(recipe_pk)
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Fields")
@@ -203,6 +209,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("delete_recipe", (recipe_name,))
             cursor.close()
+            self.connection.commit()
             self.recipes_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Unable to delete recipe")
@@ -309,6 +316,7 @@ class Controller:
             cursor_for_cuisines_add = self.connection.cursor()
             cursor_for_cuisines_add.callproc("insert_cuisine", (cuisine_name,))
             cursor_for_cuisines_add.close()
+            self.connection.commit()
             self.cuisines_section()
         except pymysql.err.IntegrityError:
             print("Invalid Name, Try Again")
@@ -319,6 +327,7 @@ class Controller:
             cursor_for_cuisines_add = self.connection.cursor()
             cursor_for_cuisines_add.callproc("delete_cuisine", (cuisine_name,))
             cursor_for_cuisines_add.close()
+            self.connection.commit()
             self.cuisines_section()
         except (pymysql.err.IntegrityError, pymysql.err.DataError):
             print("Invalid Name")
@@ -355,6 +364,7 @@ class Controller:
                 cursor_for_cuisines_add = self.connection.cursor()
                 cursor_for_cuisines_add.callproc("update_cuisine", (command_new, name,))
                 cursor_for_cuisines_add.close()
+                self.connection.commit()
                 self.cuisine_display(name)
             except (pymysql.err.IntegrityError, pymysql.err.DataError):
                 print("Invalid name")
@@ -399,6 +409,7 @@ class Controller:
             cursor_for_type_add = self.connection.cursor()
             cursor_for_type_add.callproc("insert_type", (type_name,))
             cursor_for_type_add.close()
+            self.connection.commit()
             self.types_section()
         except pymysql.err.IntegrityError:
             print("Invalid Fields")
@@ -409,6 +420,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("delete_type", (type_name,))
             cursor.close()
+            self.connection.commit()
             self.types_section()
         except pymysql.err.IntegrityError:
             print("Cannot delete type, used in recipe")
@@ -452,6 +464,7 @@ class Controller:
             cursor = self.connection.cursor()
             cursor.callproc("update_type_name", (type_pk,new_type_name,))
             cursor.close()
+            self.connection.commit()
             self.type_display(new_type_name)
         except (pymysql.err.IntegrityError, IndexError):
             print("New type name is invalid, try again")
